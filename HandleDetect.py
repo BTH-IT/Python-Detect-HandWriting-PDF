@@ -23,7 +23,7 @@ def convertToString(segments, language = "vi_VN"):
         segment_pil = Image.fromarray(cv2.cvtColor(segment, cv2.COLOR_BGR2RGB))
         segment_pil_gray = segment_pil.convert('L')
         text = detector.predict(segment_pil_gray)
-        result += " " + text + "\n"
+        result += " " + text
     
     # dùng thư viện enchant để chỉnh sửa chính tả
     

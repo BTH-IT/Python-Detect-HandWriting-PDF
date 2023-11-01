@@ -381,6 +381,7 @@ class Ui_MainWindow(object):
         self.filename = 'temp/temp.jpg'
         self.pixmap = QPixmap(self.filename)
         self.cv2_image = cv2.imread(self.filename)
+        self.cv2_image_tmp = self.cv2_image
         self.setImage()
         self.brightnessSlider.setEnabled(True)
         self.sharpnessSlider.setEnabled(True)

@@ -136,6 +136,12 @@ class Ui_Form(object):
                 text = detect.convertToString(segments)
             case 1:
                 text = detect.convertToString(segments, "en_US")
+            case 2:
+                text = detect.convertToString(segments, "fr_FR")
+            case 3:
+                text = detect.convertToString(segments, "it_IT")
+            case 4:
+                text = detect.convertToString(segments, "es_ES")
         self.processBar.setProperty("value", 100)
         
         self.textPreview.setText(text)
