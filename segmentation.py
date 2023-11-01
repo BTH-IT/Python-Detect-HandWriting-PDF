@@ -3,7 +3,7 @@ import numpy as np
 import pytesseract
 import re
 
-pytesseract.pytesseract.tesseract_cmd = r'venv\Lib\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 PATTERN = "[aAàÀảẢãÃáÁạẠăĂằẰẳẲẵẴắẮặẶâÂầẦẩẨẫẪấẤậẬbBcCdDđĐeEèÈẻẺẽẼéÉẹẸêÊềỀểỂễỄếẾệỆfFgGhHiIìÌỉỈĩĨíÍịỊjJkKlLmMnNoOòÒỏỎõÕóÓọỌôÔồỒổỔỗỖốỐộỘơƠờỜởỞỡỠớỚợỢpPqQrRsStTuUùÙủỦũŨúÚụỤưƯừỪửỬữỮứỨựỰvVwWxXyYỳỲỷỶỹỸýÝỵỴzZ0123456789]"#delete 'cause it's too long, cannot capture, it a-z
 
 def ImgHasText(image):
@@ -53,7 +53,7 @@ def line_segmentation(img):
         x, y, w, h = cv2.boundingRect(ctr)
         segment = img2[y:y+h, x:x+w]
         segment_gray = cv2.cvtColor(segment, cv2.COLOR_BGR2GRAY)
-        if h > 50:
+        if h > 30:
             if ImgHasText(segment_gray):
                 cv2.rectangle(img, (x, y), (x+w, y+h), (40, 100, 250), 2)
                 segments.append(segment_gray)

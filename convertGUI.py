@@ -5,11 +5,12 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QFil
 from PyQt6.QtGui import QPixmap, QColor, QImage
 from PyQt6 import QtCore, QtGui, QtWidgets
 import segmentation as sg
-import Vietnamese as vn
+import HandleDetect as detect
 import toPDF
 
 class Ui_Form(object):
     def setupUi(self, Form):
+        self.language = 0
         Form.setObjectName("Form")
         Form.setFixedSize(818, 524)
         self.gridLayout_2 = QtWidgets.QGridLayout(Form)
@@ -122,9 +123,6 @@ class Ui_Form(object):
         self.reg_image = segments[0]
         segments.pop(0)
         
-        # image_rgb = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-        print(self.reg_image.shape)
         height, width, channel = self.reg_image.shape
         bytesPerLine = channel * width
         qImg = QImage(self.reg_image.data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
@@ -132,7 +130,12 @@ class Ui_Form(object):
         self.setImage()
         
         self.processBar.setProperty("value", 60)
-        text = vn.convertToString(segments)
+        text = ""
+        match self.language:
+            case 0:
+                text = detect.convertToString(segments)
+            case 1:
+                text = detect.convertToString(segments, "en_US")
         self.processBar.setProperty("value", 100)
         
         self.textPreview.setText(text)

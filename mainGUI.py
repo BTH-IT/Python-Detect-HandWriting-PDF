@@ -2,10 +2,12 @@ import cv2
 import sys
 import datetime
 import numpy as np
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QMessageBox, QSizePolicy, QFrame
-from PyQt6.QtGui import QPixmap, QColor, QImage
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtWidgets import QFileDialog
+from PyQt6.QtGui import QPixmap, QImage
+from PyQt6 import QtCore, QtWidgets
 import convertGUI, cropGUI
+from PIL import Image, ImageEnhance
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -154,10 +156,10 @@ class Ui_MainWindow(object):
         self.sharpnessSlider = QtWidgets.QSlider(self.verticalFrame_2)
         self.sharpnessSlider.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.sharpnessSlider.setObjectName("sharpnessSlider")
-        self.sharpnessSlider.setRange(0, 100)
+        self.sharpnessSlider.setRange(-100, 100)
         self.sharpnessSlider.setValue(0)
         self.sharpnessSlider.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
-        self.sharpnessSlider.setTickInterval(5)
+        self.sharpnessSlider.setTickInterval(10)
         self.sharpnessSlider.setEnabled(False)
         self.horizontalLayout_5.addWidget(self.sharpnessSlider)
         self.sharpnessLabel = QtWidgets.QLabel(self.verticalFrame_2)
@@ -221,6 +223,7 @@ class Ui_MainWindow(object):
         if filename:
             self.pixmap = QPixmap(filename)
             self.cv2_image = cv2.imread(filename)
+            self.cv2_image_tmp = self.cv2_image
             self.setImage()
             self.filename = filename
             self.brightnessSlider.setEnabled(True)
@@ -265,6 +268,7 @@ class Ui_MainWindow(object):
         cap.release()
         cv2.destroyAllWindows()
         self.cv2_image = frame
+        self.cv2_image_tmp = frame
         now = datetime.datetime.now()
         filename = 'Images/Capture'+ now.strftime("%Y%m%d%H%M%S") + ".jpg"
         cv2.imwrite(filename, frame)
@@ -282,60 +286,74 @@ class Ui_MainWindow(object):
         self.brightnessSlider.setValue(0)
         self.sharpnessSlider.setValue(0)
         self.contrastSlider.setValue(0)
+    
+    def customize_image(self):
+        pillow_image = Image.fromarray(self.cv2_image_tmp)
+
+        # Thực hiện tăng độ sáng
+        brightness_value_normalized = self.brightnessSlider.value()
+        brightened_image = ImageEnhance.Brightness(pillow_image).enhance((brightness_value_normalized + 100) / 100)
+
+        # Thực hiện tăng độ sắc nét
+        sharpness_value_normalized = self.sharpnessSlider.value()
+        image = np.array(brightened_image)
+        sharpened_image = cv2.convertScaleAbs(image, alpha=1 + sharpness_value_normalized/100, beta=0)
+        
+        # Thực hiện tăng độ tương phản
+        contrast_value_normalized = self.contrastSlider.value()
+        sharpened_image = Image.fromarray(sharpened_image)
+        contrastened_image = ImageEnhance.Contrast(sharpened_image).enhance((contrast_value_normalized + 100) / 100)
+
+        image = np.array(contrastened_image)
+
+        return image
         
     def update_image_brightness(self):
-        brightness = self.brightnessSlider.value()
-        if brightness % 10 == 0:  
-            # Convert the numpy array to BGR format
-            img = cv2.convertScaleAbs(self.cv2_image, alpha=1, beta=brightness-self.preBright)
-            self.cv2_image = img
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            height, width, channel = img.shape
-            bytesPerLine = channel * width
-            qImg = QImage(img.data, width, height, bytesPerLine,  QImage.Format.Format_RGB888)
-            self.pixmap = QPixmap.fromImage(qImg)
-            self.setImage()
-            self.preBright = brightness
+        image = self.customize_image()
+        height, width, channel = image.shape
+        bytes_per_line = 3 * width
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        image = np.array(image)
+        q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+
+        # Display the QImage using QPixmap
+        q_pixmap = QPixmap.fromImage(q_image)
+        self.cv2_image = image
+        self.pixmap = q_pixmap
+        self.setImage()
             
     def update_image_contrast(self):
-        value = self.contrastSlider.value()
-        if value % 10 == 0:  
-            alpha = (value - self.preContrast + 100) / 100
-            
-            img = cv2.convertScaleAbs(self.cv2_image, alpha=alpha, beta=0)
-            self.cv2_image = img
-        
-            image_rgb = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        image = self.customize_image()
+        height, width, channel = image.shape
+        bytes_per_line = 3 * width
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        image = np.array(image)
+        q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
 
-            height, width, channel = image_rgb.shape
-            bytesPerLine = channel * width
-            qImg = QImage(image_rgb.data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
-            self.pixmap = QPixmap.fromImage(qImg)
-            self.setImage()
-            self.preContrast = value
+        # Display the QImage using QPixmap
+        q_pixmap = QPixmap.fromImage(q_image)
+        self.cv2_image = image
+        self.pixmap = q_pixmap
+        self.setImage()
     
     def update_image_sharpness(self):
-        value = self.sharpnessSlider.value()
-        if value % 2 == 0: 
-            # Apply a sharpening filter to the image
-            kernel_size = (value // 10) * 2 + 1
-            kernel = cv2.getGaussianKernel(kernel_size, 0)
-            kernel = -1 * kernel @ kernel.T
-            kernel[int(kernel_size/2), int(kernel_size/2)] += 2
-            sharp = cv2.filter2D(self.cv2_image, -1, kernel)
-            self.cv2_image = sharp
-            sharp_rgb = cv2.cvtColor(sharp, cv2.COLOR_RGB2BGR)
-            height, width, channel = sharp_rgb.shape
-            bytesPerLine = channel * width
-            qImg = QImage(sharp_rgb.data, width, height, bytesPerLine, QImage.Format.Format_RGB888)
-            self.pixmap = QPixmap.fromImage(qImg)
-            self.setImage()
-            self.preSharp = value
+        image = self.customize_image()
+        
+        height, width, channel = image.shape
+        bytes_per_line = 3 * width
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        image = np.array(image)
+        q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+
+        # Display the QImage using QPixmap
+        q_pixmap = QPixmap.fromImage(q_image)
+        self.cv2_image = image
+        self.pixmap = q_pixmap
+        self.setImage()
     
     def resetParams(self):
         self.pixmap = QPixmap(self.filename)
         self.cv2_image = cv2.imread(self.filename)
-        self.preBright = 0
         self.preSharp = 0
         self.preContrast = 0
         self.brightnessSlider.setValue(0)
@@ -347,6 +365,7 @@ class Ui_MainWindow(object):
         self.window = QtWidgets.QWidget()
         self.convertWindow = convertGUI.Ui_Form()
         self.convertWindow.setupUi(self.window)
+        self.convertWindow.language = self.language.currentIndex()
         self.window.show()
         self.convertWindow.Image(self.cv2_image)
         
