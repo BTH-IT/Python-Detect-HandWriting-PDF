@@ -1,3 +1,4 @@
+from tkinter import messagebox
 import cv2
 import sys
 import datetime
@@ -5,6 +6,7 @@ import numpy as np
 from PyQt6.QtWidgets import QFileDialog
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6 import QtCore, QtWidgets
+import requests
 import convertGUI, cropGUI
 from PIL import Image, ImageEnhance
 
@@ -49,6 +51,12 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.imageCapture)
         spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout.addItem(spacerItem2)
+        self.downloadButton = QtWidgets.QPushButton(self.horizontalFrame, clicked=lambda: self.DownloadImage())
+        self.downloadButton.setMinimumSize(QtCore.QSize(100, 30))
+        self.downloadButton.setObjectName("downloadButton")
+        self.horizontalLayout.addWidget(self.downloadButton)
+        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalLayout.addItem(spacerItem3)
         self.imageCrop = QtWidgets.QPushButton(self.horizontalFrame, clicked = lambda: self.open_crop_window(MainWindow))
         self.imageCrop.setEnabled(False)
         sizePolicy = QtWidgets.QSizePolicy( QtWidgets.QSizePolicy.Policy.Preferred,  QtWidgets.QSizePolicy.Policy.Preferred)
@@ -205,6 +213,34 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(self.mainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+    
+    def DownloadImage(self):
+        url, ok = QtWidgets.QInputDialog.getText(self.mainWindow, "Download Image", "Enter the image URL:")
+        if ok:
+            response = requests.get(url)
+            if response.status_code == 200:
+                content_type = response.headers.get('Content-Type')
+                if 'image' in content_type:
+                    img_data = response.content
+                    filename = r'''D:\DOW\Python-Detect-HandWriting-PDF-main\temp.jpg'''
+                    with open(filename, 'wb') as f:
+                        f.write(img_data)
+                        self.pixmap = QPixmap(filename)
+                        self.cv2_image = cv2.imread(filename)
+                        self.cv2_image_tmp = self.cv2_image
+                        self.setImage()
+                        self.filename = filename
+                        self.brightnessSlider.setEnabled(True)
+                        self.sharpnessSlider.setEnabled(True)
+                        self.contrastSlider.setEnabled(True)
+                        self.begin.setEnabled(True)
+                        self.imageCrop.setEnabled(True)
+                        self.preBright = 0
+                        self.preSharp = 0
+                        self.preContrast = 0
+                        self.brightnessSlider.setValue(0)
+                        self.sharpnessSlider.setValue(0)
+                        self.contrastSlider.setValue(0)
     
     def setImage(self):
         if self.pixmap.width() <= 460:
@@ -416,6 +452,7 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Image to PDF"))
         self.imageChoose.setText(_translate("MainWindow", "Chọn ảnh"))
+        self.downloadButton.setText(_translate("MainWindow", "URL"))
         self.imageCapture.setText(_translate("MainWindow", "Chụp ảnh"))
         self.imageCrop.setText(_translate("MainWindow", "Cắt ảnh"))
         self.reset.setText(_translate("MainWindow", "Reset"))
