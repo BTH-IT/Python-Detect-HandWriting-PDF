@@ -9,7 +9,7 @@ from PyQt6 import QtCore, QtWidgets
 import requests
 import convertGUI, cropGUI
 from PIL import Image, ImageEnhance
-
+import imghdr
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -217,12 +217,18 @@ class Ui_MainWindow(object):
     def DownloadImage(self):
         url, ok = QtWidgets.QInputDialog.getText(self.mainWindow, "Download Image", "Enter the image URL:")
         if ok:
-            response = requests.get(url)
+            try:
+                response = requests.get(url)
+                response.raise_for_status()  # Raise an HTTPError for bad responses
+            except requests.RequestException as e:
+                QtWidgets.QMessageBox.warning(self.mainWindow, "Error", f"Tải hình ảnh thất bại: {str(e)}")
+                return
+            
             if response.status_code == 200:
                 content_type = response.headers.get('Content-Type')
                 if 'image' in content_type:
                     img_data = response.content
-                    filename = r'''D:\DOW\Python-Detect-HandWriting-PDF-main\temp.jpg'''
+                    filename = 'temp/temp.jpg'
                     with open(filename, 'wb') as f:
                         f.write(img_data)
                         self.pixmap = QPixmap(filename)
@@ -241,7 +247,7 @@ class Ui_MainWindow(object):
                         self.brightnessSlider.setValue(0)
                         self.sharpnessSlider.setValue(0)
                         self.contrastSlider.setValue(0)
-    
+                        
     def setImage(self):
         if self.pixmap.width() <= 460:
             if self.pixmap.width() <= 445:
